@@ -204,9 +204,19 @@ public class RestRequest {
     public int Attempts { get; private set; }
 
     /// <summary>
-    /// Completion option for <seealso cref="HttpClient"/>
+    /// Completion option for <seealso cref="HttpClient"/>. When <c>null</c>, the value from
+    /// <see cref="RestClientOptions.CompletionOption"/> is used.
     /// </summary>
-    public HttpCompletionOption CompletionOption { get; set; } = HttpCompletionOption.ResponseContentRead;
+    /// <remarks>
+    /// Prefer leaving this <c>null</c> (the default) so the client-level setting applies.
+    /// <see cref="HttpCompletionOption.ResponseHeadersRead"/> is recommended over
+    /// <see cref="HttpCompletionOption.ResponseContentRead"/> because the latter causes
+    /// <c>HttpClient</c> to buffer the response body internally via <c>LoadIntoBufferAsync</c>,
+    /// which does not honour the <see cref="System.Threading.CancellationToken"/> on
+    /// .NET Framework 4.8. With <see cref="HttpCompletionOption.ResponseHeadersRead"/> the body
+    /// is read by RestSharp through <c>Stream.ReadAsync</c>, which does propagate cancellation.
+    /// </remarks>
+    public HttpCompletionOption? CompletionOption { get; set; }
 
     /// <summary>
     /// Cache policy to be used for requests using <seealso cref="CacheControlHeaderValue"/>

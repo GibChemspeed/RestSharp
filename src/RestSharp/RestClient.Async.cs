@@ -179,7 +179,7 @@ public partial class RestClient {
 
         try {
             while (true) {
-                var responseMessage = await HttpClient.SendAsync(message, request.CompletionOption, ct).ConfigureAwait(false);
+                var responseMessage = await HttpClient.SendAsync(message, request.CompletionOption ?? Options.CompletionOption, ct).ConfigureAwait(false);
 
                 ParseResponseCookies(responseMessage, url, cookieContainer);
 

@@ -213,6 +213,21 @@ public partial class RestClientOptions {
     public TimeSpan? Timeout { get; set; }
 
     /// <summary>
+    /// Default <see cref="HttpCompletionOption"/> used for all requests unless overridden per-request
+    /// via <see cref="RestRequest.CompletionOption"/>.
+    /// </summary>
+    /// <remarks>
+    /// Defaults to <see cref="HttpCompletionOption.ResponseHeadersRead"/> so that the response body
+    /// is read by RestSharp through <c>Stream.ReadAsync</c>, which honours the
+    /// <see cref="System.Threading.CancellationToken"/> on all platforms including .NET Framework 4.8.
+    /// The alternative <see cref="HttpCompletionOption.ResponseContentRead"/> causes <c>HttpClient</c>
+    /// to buffer the body internally via <c>LoadIntoBufferAsync</c>, which does not observe the
+    /// cancellation token on .NET Framework 4.8 and can cause infinite hangs on chunked responses
+    /// when the server stops sending data.
+    /// </remarks>
+    public HttpCompletionOption CompletionOption { get; set; } = HttpCompletionOption.ResponseHeadersRead;
+
+    /// <summary>
     /// Default encoding to use when no encoding is specified in the content type header.
     /// </summary>
     public Encoding Encoding { get; set; } = Encoding.UTF8;
