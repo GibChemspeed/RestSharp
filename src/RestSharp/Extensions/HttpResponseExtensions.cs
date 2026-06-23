@@ -54,7 +54,7 @@ static class HttpResponseExtensions {
         Task<Stream?> ReadResponse() {
 #if NET
             return httpResponse.Content.ReadAsStreamAsync(cancellationToken)!;
-# else
+#else
             return httpResponse.Content == null ? Task.FromResult((Stream?)null) : httpResponse.Content.ReadAsStreamAsync();
 #endif
         }
