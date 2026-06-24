@@ -26,16 +26,44 @@ public partial class RestClient {
     public async Task<RestResponse> ExecuteAsync(RestRequest request, CancellationToken cancellationToken = default) {
         using var internalResponse = await ExecuteRequestAsync(request, cancellationToken).ConfigureAwait(false);
 
-        var response = internalResponse.Exception == null
-            ? await RestResponse.FromHttpResponse(
+        RestResponse response;
+
+        if (internalResponse.Exception != null) {
+            response = GetErrorResponse(request, internalResponse.Exception, internalResponse.TimeoutToken);
+        }
+        else {
+#if !NET
+            // On .NET Framework 4.8, aborting the HttpWebRequest (via Abort() called from the
+            // CT registration in ReadAsBytes) causes the in-progress ConnectStream.BeginRead to
+            // complete with an IOException ("The request was aborted") or ObjectDisposedException
+            // rather than OperationCanceledException. Normalise both back to OperationCanceledException
+            // so callers see a consistent cancellation contract.
+            try {
+                response = await RestResponse.FromHttpResponse(
+                        internalResponse.ResponseMessage!,
+                        request,
+                        Options,
+                        internalResponse.CookieContainer?.GetCookies(internalResponse.Url),
+                        cancellationToken
+                    )
+                    .ConfigureAwait(false);
+            }
+            catch (Exception e) when (cancellationToken.IsCancellationRequested
+                                      && (e is ObjectDisposedException || e is System.IO.IOException)) {
+                throw new OperationCanceledException(cancellationToken);
+            }
+#else
+            response = await RestResponse.FromHttpResponse(
                     internalResponse.ResponseMessage!,
                     request,
                     Options,
                     internalResponse.CookieContainer?.GetCookies(internalResponse.Url),
                     cancellationToken
                 )
-                .ConfigureAwait(false)
-            : GetErrorResponse(request, internalResponse.Exception, internalResponse.TimeoutToken);
+                .ConfigureAwait(false);
+#endif
+        }
+
         response.MergedParameters = new RequestParameters(request.Parameters.Union(DefaultParameters));
         await OnAfterRequest(response, cancellationToken).ConfigureAwait(false);
 
